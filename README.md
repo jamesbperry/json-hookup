@@ -1,8 +1,8 @@
-# json-hookup
+# JsonHookup
 For when you wish System.Text.Json would honor DataContract and DataMember attributes
 
 ## Overview
-JsonHookup uses 
+JsonHookup provides a "modifier" to `System.Text.Json`, so that its `JsonSerializer` can (largely) honor `[DataContract]` / `[DataMember]` attributes on classes being serialized and deserialized.
 
 This is especially useful when a library abstracts their `ISerializer`, but the DTO classes are all decorated using `[DataMember]` attributes.
 
@@ -54,6 +54,7 @@ This project is completely experimental.
 ## Known Issues as of v0.1.1
 - Interface types are not supported. Only concrete `class` or `struct` types are supported.
 - `DataContractMode = Explicit` is a bit stupid/broken. It should honor a `[DataContract]` attribute but does not.
+- Member ordering semantics are rudimentary. Data Contract calls for [some additional behavior](https://learn.microsoft.com/en-us/dotnet/framework/wcf/feature-details/data-member-order).
 - Emit Default Value is ignored
 - Testing is skeletal at best
 - The only supported TypeInfoResolver is `DefaultJsonTypeInfoResolver`
