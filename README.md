@@ -1,6 +1,8 @@
 # JsonHookup
 For when you wish System.Text.Json would honor DataContract and DataMember attributes
 
+![](https://img.shields.io/nuget/v/JsonHookup)
+
 ## Overview
 JsonHookup provides a "modifier" to `System.Text.Json`, so that its `JsonSerializer` can (largely) honor `[DataContract]` / `[DataMember]` attributes on classes being serialized and deserialized.
 
