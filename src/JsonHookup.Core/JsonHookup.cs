@@ -58,7 +58,7 @@ namespace JsonHookup.Core
             {
                 options = hookupAttribute.ApplyTo(options);
             }
-            else if (options.DataContractMode == HookupMode.Explicit)
+            else if (options.DataContractMode == HookupMode.Explicit && !jsonTypeInfo.Type.IsDefined(typeof(DataContractAttribute), inherit:false))
             {
                 return; // Don't handle this type
             }
@@ -81,24 +81,30 @@ namespace JsonHookup.Core
                 string jsonPropertyName = getJsonName(typeProperty);
                 if (jsonProperties.TryGetValue(jsonPropertyName, out JsonPropertyInfo? jsonProperty) && jsonProperty is not null)
                 {
-                    ApplyDataMemberConfig(typeProperty, jsonProperty, options.Ignore);
+                    // Existing property - apply config.
+                    ApplyDataMemberConfig(typeProperty, jsonProperty, options);
                 }
                 else if (!typeProperty.IsDefined(typeof(IgnoreDataMemberAttribute)))
                 {
+                    // Add a new property
                     JsonPropertyInfo newJsonProperty = jsonTypeInfo.CreateJsonPropertyInfo(typeProperty.PropertyType, typeProperty.Name);
                     
                     // TODO need to explicitly define getter/setter?
                     //newJsonProperty.Get = typeProperty.Get
 
-                    ApplyDataMemberConfig(typeProperty, newJsonProperty, options.Ignore);
+                    ApplyDataMemberConfig(typeProperty, newJsonProperty, options);
                     jsonTypeInfo.Properties.Add(newJsonProperty);
                 }
             }
         }
 
-        private static void ApplyDataMemberConfig(PropertyInfo typeProperty, JsonPropertyInfo jsonProperty, HookupParts ignore)
+        private static void ApplyDataMemberConfig(PropertyInfo typeProperty, JsonPropertyInfo jsonProperty, HookupOptions options)
         {
-            if (typeProperty.IsDefined(typeof(IgnoreDataMemberAttribute)))
+            bool hasIgnoreAttribute = typeProperty.IsDefined(typeof(IgnoreDataMemberAttribute));
+            bool hasDataMemberAttribute = typeProperty.IsDefined(typeof(DataMemberAttribute));
+            bool shouldIgnore = hasIgnoreAttribute || (options.DataMemberMode == HookupMode.Explicit && !hasDataMemberAttribute);
+
+            if (shouldIgnore)
             {
                 jsonProperty.ShouldSerialize = (_, _) => false;
                 return;
@@ -106,7 +112,7 @@ namespace JsonHookup.Core
 
             if (typeProperty.GetCustomAttribute<DataMemberAttribute>(inherit: false) is DataMemberAttribute dataMemberAttribute)
             {
-                ApplyDataMemberConfig(dataMemberAttribute, jsonProperty, ignore);
+                ApplyDataMemberConfig(dataMemberAttribute, jsonProperty, options.Ignore);
             }
         }
 
@@ -149,7 +155,7 @@ namespace JsonHookup.Core
 
             bool attributeIsOptional = publicOrNonPublic switch
             {
-                BindingFlags.Public => dataMemberMode == HookupMode.Implicit,
+                BindingFlags.Public => true, //dataMemberMode == HookupMode.Implicit,
                 BindingFlags.NonPublic => false,
                 _ => throw new NotSupportedException(),
             };

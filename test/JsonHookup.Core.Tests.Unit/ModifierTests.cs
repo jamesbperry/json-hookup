@@ -16,25 +16,55 @@ namespace JsonHookup.Core.Tests.Unit
         public void Naming_Policy_Is_Respected(JsonKnownNamingPolicy namingPolicy)
         {
             JsonSerializerOptions jsonOptions = GetJsonOptions(namingPolicy);
-            JsonSerializerOptions jsonOptionsWithHookup = GetJsonOptions(namingPolicy).AddHookup();
+            JsonSerializerOptions jsonOptionsWithHookup = GetJsonOptions(namingPolicy).AddHookup(HookupOptions.DefaultImplicit);
 
             SimpleDC objDC = new() 
             {
                 Id = Guid.NewGuid(),
                 Name = "Mike",
                 Job = "Monster",
+                Age = 42,
                 InternalInfo = "This should be ignored"
             };
 
-            SimpleSTJ objSTJ = new SimpleSTJ() with
+            SimpleSTJ_Implicit objSTJ = new SimpleSTJ_Implicit() with
             {
                 Id = objDC.Id,
                 Name = objDC.Name,
                 Job = objDC.Job,
+                Age = objDC.Age,
                 InternalInfo = objDC.InternalInfo,
             };
 
-            objDC.Should().BeEquivalentTo(objSTJ);
+            string actualJson = JsonSerializer.Serialize(objDC, jsonOptionsWithHookup);
+            string expectedJson = JsonSerializer.Serialize(objSTJ, jsonOptions);
+
+            actualJson.Should().Be(expectedJson);
+        }
+
+        [Fact]
+        public void Explicit_Data_Contract_Honors_Attributes()
+        {
+            JsonSerializerOptions jsonOptions = GetJsonOptions(JsonKnownNamingPolicy.CamelCase);
+            JsonSerializerOptions jsonOptionsWithHookup = GetJsonOptions(JsonKnownNamingPolicy.CamelCase).AddHookup(HookupOptions.DefaultExplicit);
+
+            SimpleDC objDC = new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "Mike",
+                Job = "Monster",
+                Age = 42,
+                InternalInfo = "This should be ignored"
+            };
+
+            SimpleSTJ_Explicit objSTJ = new SimpleSTJ_Explicit() with
+            {
+                Id = objDC.Id,
+                // No name
+                Job = objDC.Job,
+                Age = objDC.Age,
+                InternalInfo = objDC.InternalInfo,
+            };
 
             string actualJson = JsonSerializer.Serialize(objDC, jsonOptionsWithHookup);
             string expectedJson = JsonSerializer.Serialize(objSTJ, jsonOptions);
@@ -54,10 +84,6 @@ namespace JsonHookup.Core.Tests.Unit
             return new JsonSerializerOptions()
             {
                 PropertyNamingPolicy = namingPolicy,
-                TypeInfoResolver = new DefaultJsonTypeInfoResolver
-                {
-                    Modifiers = { JsonHookup.ImplicitJsonHookupModifier },
-                }
             };
         }
     }
