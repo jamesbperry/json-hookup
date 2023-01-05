@@ -16,12 +16,12 @@ namespace JsonHookup.Core
         public HookupParts? Ignore { get; }
         public HookupMode? DataMemberMode { get; }
 
-        public HookupSettings ApplyTo(HookupSettings settings)
-            => settings with
+        public HookupOptions ApplyTo(HookupOptions options)
+            => options with
             {
-                Ignore = Ignore ?? settings.Ignore,
+                Ignore = Ignore ?? options.Ignore,
                 DataContractMode = HookupMode.Explicit,
-                DataMemberMode = DataMemberMode ?? settings.DataMemberMode,
+                DataMemberMode = DataMemberMode ?? options.DataMemberMode,
             };
     }
 }

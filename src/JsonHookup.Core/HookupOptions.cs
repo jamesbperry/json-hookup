@@ -2,7 +2,7 @@
 
 namespace JsonHookup.Core
 {
-    public record class HookupSettings
+    public record class HookupOptions
     {
         public HookupParts Ignore { get; init; }
 
@@ -10,14 +10,14 @@ namespace JsonHookup.Core
 
         public HookupMode DataMemberMode { get; init; }
 
-        public static HookupSettings DefaultExplicit { get; } = new()
+        public static HookupOptions DefaultExplicit { get; } = new()
         {
             Ignore = HookupParts.None,
             DataContractMode = HookupMode.Explicit,
             DataMemberMode = HookupMode.Explicit,
         };
 
-        public static HookupSettings DefaultImplicit { get; } = new()
+        public static HookupOptions DefaultImplicit { get; } = new()
         {
             Ignore = HookupParts.None,
             DataContractMode = HookupMode.Implicit,

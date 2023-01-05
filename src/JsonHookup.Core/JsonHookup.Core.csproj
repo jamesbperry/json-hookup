@@ -1,8 +1,19 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	
   <PropertyGroup>
+	<Version>0.1.1</Version>
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <PackageId>JsonHookup</PackageId>
+    <Title>Json Hookup</Title>
+    <Authors>brandonperry</Authors>
+    <PackageProjectUrl>https://github.com/jamesbperry/json-hookup</PackageProjectUrl>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Product>JsonHookup</Product>
+    <Description>For when you wish System.Text.Json would honor DataContract and DataMember attributes</Description>
+    <Copyright>(c) 2022 Brandon Perry</Copyright>
+    <RepositoryUrl>https://github.com/jamesbperry/json-hookup</RepositoryUrl>
+    <PackageTags>json;datacontract;datamember</PackageTags>
   </PropertyGroup>
 
 </Project>

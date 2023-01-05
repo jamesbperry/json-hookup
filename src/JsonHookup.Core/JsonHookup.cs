@@ -11,16 +11,43 @@ namespace JsonHookup.Core
 {
     public static class JsonHookup
     {
+        public static JsonSerializerOptions AddHookupToDefault() => AddHookupToDefault(HookupOptions.DefaultExplicit);
+
+        public static JsonSerializerOptions AddHookupToDefault(HookupOptions hookupOptions)
+        {
+            JsonSerializerOptions defaultOptions = JsonSerializerOptions.Default;
+            JsonSerializerOptions mutableOptions = new JsonSerializerOptions(defaultOptions);
+            return mutableOptions.AddHookup(HookupOptions.DefaultExplicit);
+        }
+
+        public static JsonSerializerOptions AddHookup(this JsonSerializerOptions jsonOptions) => AddHookup(jsonOptions, HookupOptions.DefaultExplicit);
+
+        public static JsonSerializerOptions AddHookup(this JsonSerializerOptions jsonOptions, HookupOptions hookupOptions)
+        {
+            jsonOptions.TypeInfoResolver ??= new DefaultJsonTypeInfoResolver();
+
+            if (jsonOptions.TypeInfoResolver is DefaultJsonTypeInfoResolver djtir)
+            {
+                djtir.Modifiers.Add(JsonHookupModifier(hookupOptions));
+            }
+            else
+            {
+                throw new InvalidOperationException($"Friendly wire-up can only be used on {nameof(JsonSerializerOptions)} with a {nameof(DefaultJsonTypeInfoResolver)}.");
+            }
+
+            return jsonOptions;
+        }
+
         public static void ExplicitJsonHookupModifier(JsonTypeInfo jsonTypeInfo)
-            => Apply(HookupSettings.DefaultExplicit, jsonTypeInfo);
+            => Apply(HookupOptions.DefaultExplicit, jsonTypeInfo);
 
         public static void ImplicitJsonHookupModifier(JsonTypeInfo jsonTypeInfo)
-            => Apply(HookupSettings.DefaultImplicit, jsonTypeInfo);
+            => Apply(HookupOptions.DefaultImplicit, jsonTypeInfo);
 
-        public static Action<JsonTypeInfo> JsonHookupModifier(HookupSettings settings)
-            => (JsonTypeInfo jsonTypeInfo) => Apply(settings, jsonTypeInfo);
+        public static Action<JsonTypeInfo> JsonHookupModifier(HookupOptions options)
+            => (JsonTypeInfo jsonTypeInfo) => Apply(options, jsonTypeInfo);
 
-        private static void Apply(HookupSettings settings, JsonTypeInfo jsonTypeInfo)
+        private static void Apply(HookupOptions options, JsonTypeInfo jsonTypeInfo)
         {
             if (jsonTypeInfo.Kind != JsonTypeInfoKind.Object || jsonTypeInfo.Type.IsInterface) // not supporting interfaces for now
             {
@@ -29,18 +56,19 @@ namespace JsonHookup.Core
 
             if (GetHookupAttribute(jsonTypeInfo.Type) is JsonUseDataContractAttribute hookupAttribute)
             {
-                settings = hookupAttribute.ApplyTo(settings);
+                options = hookupAttribute.ApplyTo(options);
             }
-            else if (settings.DataContractMode == HookupMode.Explicit)
+            else if (options.DataContractMode == HookupMode.Explicit)
             {
                 return; // Don't handle this type
             }
 
-            IEnumerable<PropertyInfo> typeProperties = GetDataMemberProperties(jsonTypeInfo.Type, settings.DataMemberMode);
+            IEnumerable<PropertyInfo> typeProperties = GetDataMemberProperties(jsonTypeInfo.Type, options.DataMemberMode);
 
-            // TO DO : this might be unnecessary/undesirable, depending on when the naming policy is applied!
+            // By the time Json properties get here, naming policy has already been applied.
             JsonNamingPolicy? namingPolicy = jsonTypeInfo.Options.PropertyNamingPolicy;
-            string getName(PropertyInfo p) => namingPolicy?.ConvertName(p.Name) ?? p.Name;
+            string getJsonName(PropertyInfo p) => namingPolicy?.ConvertName(p.Name) ?? p.Name;
+
             IReadOnlyDictionary<string, JsonPropertyInfo> jsonProperties = jsonTypeInfo.Properties.ToDictionary(p => p.Name);
 
             foreach (PropertyInfo typeProperty in typeProperties)
@@ -50,10 +78,10 @@ namespace JsonHookup.Core
                     continue; // JsonAttributes take precedence. If one is applied to this property, ignore the DataMember attribute.
                 }
 
-                string jsonPropertyName = getName(typeProperty);
+                string jsonPropertyName = getJsonName(typeProperty);
                 if (jsonProperties.TryGetValue(jsonPropertyName, out JsonPropertyInfo? jsonProperty) && jsonProperty is not null)
                 {
-                    ApplyDataMemberConfig(typeProperty, jsonProperty, settings.Ignore);
+                    ApplyDataMemberConfig(typeProperty, jsonProperty, options.Ignore);
                 }
                 else if (!typeProperty.IsDefined(typeof(IgnoreDataMemberAttribute)))
                 {
@@ -62,7 +90,7 @@ namespace JsonHookup.Core
                     // TODO need to explicitly define getter/setter?
                     //newJsonProperty.Get = typeProperty.Get
 
-                    ApplyDataMemberConfig(typeProperty, newJsonProperty, settings.Ignore);
+                    ApplyDataMemberConfig(typeProperty, newJsonProperty, options.Ignore);
                     jsonTypeInfo.Properties.Add(newJsonProperty);
                 }
             }

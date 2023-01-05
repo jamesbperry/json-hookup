@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace JsonHookup.Core.Tests.Unit.TestClasses
 {
+    [DataContract]
     public record class SimpleDC
     {
         [DataMember(Name = "Key", Order = 1)]
